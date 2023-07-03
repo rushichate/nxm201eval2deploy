@@ -1,0 +1,34 @@
+const jwt = require("jsonwebtoken");
+const { BlacklistModel } = require("../module/blacklist.model");
+
+
+
+const auth = async (req,res,next)=>{
+    const {Access_token} = req?.cookies;
+
+    if(!Access_token) return res.status(400).send({msg:"Please login"})
+
+    const isTokenBlacklisted = await BlacklistModel.findOne({
+        token:Access_token,
+    });
+    if(isTokenBlacklisted)
+    return res.status(400).send({msg:"Please login..."})
+
+    jwt.verify(
+        Access_token,
+        process.env.Access_Token_Secret_Key,
+        (err,payload)=>{
+            if(err){
+                return res.status(401).send({msg:err.message});
+            }else{
+                req.userID = payload.userId;
+                req.role = payload.role;
+                next()
+            }
+        }
+    );
+};
+
+module.exports = {
+    auth
+}
